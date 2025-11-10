@@ -2,14 +2,35 @@
 import { initializeApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
 
+const requiredEnvKeys = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+  "VITE_FIREBASE_STORAGE_BUCKET",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_APP_ID",
+];
+
+const missingKeys = requiredEnvKeys.filter(
+  (key) => !import.meta.env[key]
+);
+
+if (missingKeys.length) {
+  throw new Error(
+    `Missing Firebase configuration. Ensure these env vars are defined: ${missingKeys.join(
+      ", "
+    )}`
+  );
+}
+
 const firebaseConfig = {
-  apiKey: "AIzaSyDvpbI6OjXLjYdmoH1nWYJyDPf9HAgRgPY",
-  authDomain: "rira-social-media.firebaseapp.com",
-  projectId: "rira-social-media",
-  storageBucket: "rira-social-media.appspot.com",
-  messagingSenderId: "33921742968",
-  appId: "1:33921742968:web:c0f3c3bf16ad0983b9158d",
-  measurementId: "G-RDQ0WVSMWT"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
