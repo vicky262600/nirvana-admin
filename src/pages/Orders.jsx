@@ -218,6 +218,22 @@ const Orders = () => {
     }
   };
 
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    const number = Number(value);
+    if (Number.isNaN(number)) return value;
+    return `$${number.toFixed(2)}`;
+  };
+
+  const formatTaxRate = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    const number = Number(value);
+    if (Number.isNaN(number)) return value;
+    // If stored as decimal (e.g., 0.07), convert to percentage string
+    const displayValue = number > 1 ? number : number * 100;
+    return `${displayValue.toFixed(2)}%`;
+  };
+
   if (loading) return <div>Loading orders...</div>;
   if (error) return <div>Error loading orders: {error}</div>;
 
@@ -288,19 +304,33 @@ const Orders = () => {
                         <div>Email: {order.shippingInfo.email}</div>
                         <div>Address: {order.shippingInfo.address}, {order.shippingInfo.city}, {order.shippingInfo.state} {order.shippingInfo.zipCode}, {order.shippingInfo.country || '-'}</div>
                       </div>
+                      <div style={{ marginBottom: '16px', background: '#eef2ff', borderRadius: '8px', padding: '16px' }}>
+                        <div><strong>Payment Info</strong></div>
+                        <div>Shipping Cost: {formatCurrency(order.shippingCost)}</div>
+                        <div>Tax Rate: {formatTaxRate(order.taxRate)}</div>
+                        <div>Tax: {formatCurrency(order.tax)}</div>
+                        <div>Total: {formatCurrency(order.total)}</div>
+                      </div>
                       <ItemList>
-                        {order.items.map((item, idx) => (
-                          <Item key={idx}>
-                            <ItemImage src={item.image} alt={item.name} />
-                            <ItemInfo>
-                              <div><strong>{item.name}</strong></div>
-                              <div>Price: ${item.price.toFixed(2)}</div>
-                              <div>Size: {item.selectedSize || '-'}</div>
-                              <div>Color: {item.selectedColor || '-'}</div>
-                              <div>Quantity: {item.selectedQuantity}</div>
-                            </ItemInfo>
-                          </Item>
-                        ))}
+                        {order.items.map((item, idx) => {
+                          const displayTitle = item.title || item.name || 'Untitled item';
+                          const shouldShowNameLine =
+                            item.name && item.name !== displayTitle;
+
+                          return (
+                            <Item key={idx}>
+                              <ItemImage src={item.image} alt={displayTitle} />
+                              <ItemInfo>
+                                <div><strong>{displayTitle}</strong></div>
+                                {shouldShowNameLine && <div>Name: {item.name}</div>}
+                                <div>Price: ${item.price.toFixed(2)}</div>
+                                <div>Size: {item.selectedSize || '-'}</div>
+                                <div>Color: {item.selectedColor || '-'}</div>
+                                <div>Quantity: {item.selectedQuantity}</div>
+                              </ItemInfo>
+                            </Item>
+                          );
+                        })}
                       </ItemList>
                     </ItemsCell>
                   </ItemsRow>
