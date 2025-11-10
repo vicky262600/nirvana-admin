@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginStart, loginSuccess, loginFailure } from '../slices/authSlice';
-import axios from 'axios';
+import { apiFetch } from '../utils/apiClient';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -26,15 +26,19 @@ const Login = () => {
     setError('');
     dispatch(loginStart());
     try {
-      const res = await axios.post('/api/auth/login', form, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(form),
       });
 
-      const user = res.data.user;
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const message = errBody?.message || 'Login failed';
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      const user = data.user;
 
       if (!user || !user.isAdmin) {
         dispatch(loginFailure('You are not allowed'));
@@ -44,12 +48,12 @@ const Login = () => {
 
       dispatch(loginSuccess(user));
     } catch (err) {
-      const msg =
-        err.response?.data?.message === 'Invalid credentials'
+      const message =
+        err.message === 'Invalid credentials'
           ? 'Wrong credentials'
-          : err.response?.data?.message || 'Login failed';
-      dispatch(loginFailure(msg));
-      setError(msg);
+          : err.message || 'Login failed';
+      dispatch(loginFailure(message));
+      setError(message);
     }
   };
 

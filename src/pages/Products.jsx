@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/apiClient';
 
 const ProductsContainer = styled.div`
   flex: 4;
@@ -39,7 +40,6 @@ const AddButton = styled.button`
   align-items: center;
   gap: 8px;
   transition: background 0.2s ease;
-
   &:hover {
     background: #5b3fd8;
   }
@@ -52,13 +52,13 @@ const ProductsGrid = styled.div`
 `;
 
 const ProductCard = styled.div`
+  position: relative;
   background: white;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -106,10 +106,13 @@ const RegularPrice = styled.span`
   color: #7451f8;
 `;
 
-const SaleBadge = styled.span`
-  background: #ef4444;
+const Badge = styled.span`
+  position: absolute;
+  top: 16px;
+  right: ${(props) => (props.variant === 'new' ? '16px' : '80px')};
+  background: ${(props) => (props.variant === 'sale' ? '#ef4444' : '#10b981')};
   color: white;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 12px;
   font-size: 10px;
   font-weight: 600;
@@ -140,7 +143,7 @@ const ProductStock = styled.div`
 `;
 
 const StockStatus = styled.span`
-  color: ${props => props.inStock ? '#22c55e' : '#ef4444'};
+  color: ${(props) => (props.inStock ? '#22c55e' : '#ef4444')};
   font-size: 14px;
   font-weight: 500;
 `;
@@ -165,177 +168,82 @@ const ActionButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease;
-
   &.edit {
     background: #3b82f6;
     color: white;
-    
     &:hover {
       background: #2563eb;
     }
   }
-
   &.delete {
     background: #ef4444;
     color: white;
-    
     &:hover {
       background: #dc2626;
+    }
+    &:disabled {
+      background: #fca5a5;
+      cursor: not-allowed;
     }
   }
 `;
 
 const Products = () => {
   const navigate = useNavigate();
-  
-  // Sample product data matching your schema
-  const [products] = useState([
-    {
-      _id: "1",
-      title: "Premium Cotton T-Shirt",
-      description: "Comfortable and stylish cotton t-shirt perfect for everyday wear",
-      images: ["https://images.pexels.com/photos/991509/pexels-photo-991509.jpeg?auto=compress&cs=tinysrgb&w=600"],
-      categories: ["T-Shirts", "Casual"],
-      price: 29.99,
-      onSale: false,
-      salePrice: 0,
-      variants: [
-        { size: "S", color: "White", quantity: 25 },
-        { size: "M", color: "White", quantity: 30 },
-        { size: "L", color: "White", quantity: 20 },
-        { size: "XL", color: "White", quantity: 15 },
-        { size: "S", color: "Black", quantity: 20 },
-        { size: "M", color: "Black", quantity: 25 },
-        { size: "L", color: "Black", quantity: 18 },
-        { size: "XL", color: "Black", quantity: 12 }
-      ]
-    },
-    {
-      _id: "2",
-      title: "Denim Jeans Classic Fit",
-      description: "Classic fit denim jeans with perfect stretch and comfort",
-      images: ["https://images.pexels.com/photos/1082529/pexels-photo-1082529.jpeg?auto=compress&cs=tinysrgb&w=600"],
-      categories: ["Jeans", "Denim"],
-      price: 79.99,
-      onSale: true,
-      salePrice: 59.99,
-      variants: [
-        { size: "30", color: "Blue", quantity: 15 },
-        { size: "32", color: "Blue", quantity: 20 },
-        { size: "34", color: "Blue", quantity: 18 },
-        { size: "36", color: "Blue", quantity: 12 },
-        { size: "30", color: "Black", quantity: 10 },
-        { size: "32", color: "Black", quantity: 15 },
-        { size: "34", color: "Black", quantity: 12 },
-        { size: "36", color: "Black", quantity: 8 }
-      ]
-    },
-    {
-      _id: "3",
-      title: "Hooded Sweatshirt",
-      description: "Warm and cozy hooded sweatshirt for cold weather",
-      images: ["https://images.pexels.com/photos/1183266/pexels-photo-1183266.jpeg?auto=compress&cs=tinysrgb&w=600"],
-      categories: ["Hoodies", "Sweatshirts"],
-      price: 49.99,
-      onSale: false,
-      salePrice: 0,
-      variants: [
-        { size: "S", color: "Gray", quantity: 0 },
-        { size: "M", color: "Gray", quantity: 5 },
-        { size: "L", color: "Gray", quantity: 8 },
-        { size: "XL", color: "Gray", quantity: 3 },
-        { size: "S", color: "Navy", quantity: 12 },
-        { size: "M", color: "Navy", quantity: 15 },
-        { size: "L", color: "Navy", quantity: 10 },
-        { size: "XL", color: "Navy", quantity: 7 }
-      ]
-    },
-    {
-      _id: "4",
-      title: "Summer Dress Floral",
-      description: "Beautiful floral summer dress perfect for warm days",
-      images: ["https://images.pexels.com/photos/994523/pexels-photo-994523.jpeg?auto=compress&cs=tinysrgb&w=600"],
-      categories: ["Dresses", "Summer"],
-      price: 89.99,
-      onSale: true,
-      salePrice: 69.99,
-      variants: [
-        { size: "XS", color: "Pink", quantity: 8 },
-        { size: "S", color: "Pink", quantity: 12 },
-        { size: "M", color: "Pink", quantity: 15 },
-        { size: "L", color: "Pink", quantity: 10 },
-        { size: "XL", color: "Pink", quantity: 6 }
-      ]
-    },
-    {
-      _id: "5",
-      title: "Leather Jacket",
-      description: "Classic leather jacket for a bold and stylish look",
-      images: ["https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=600"],
-      categories: ["Jackets", "Leather"],
-      price: 199.99,
-      onSale: false,
-      salePrice: 0,
-      variants: [
-        { size: "S", color: "Black", quantity: 5 },
-        { size: "M", color: "Black", quantity: 8 },
-        { size: "L", color: "Black", quantity: 6 },
-        { size: "XL", color: "Black", quantity: 4 },
-        { size: "S", color: "Brown", quantity: 3 },
-        { size: "M", color: "Brown", quantity: 6 },
-        { size: "L", color: "Brown", quantity: 4 },
-        { size: "XL", color: "Brown", quantity: 2 }
-      ]
-    },
-    {
-      _id: "6",
-      title: "Athletic Shorts",
-      description: "Comfortable athletic shorts for workouts and sports",
-      images: ["https://images.pexels.com/photos/1954524/pexels-photo-1954524.jpeg?auto=compress&cs=tinysrgb&w=600"],
-      categories: ["Shorts", "Athletic"],
-      price: 34.99,
-      onSale: false,
-      salePrice: 0,
-      variants: [
-        { size: "S", color: "Gray", quantity: 20 },
-        { size: "M", color: "Gray", quantity: 25 },
-        { size: "L", color: "Gray", quantity: 22 },
-        { size: "XL", color: "Gray", quantity: 18 },
-        { size: "S", color: "Black", quantity: 15 },
-        { size: "M", color: "Black", quantity: 20 },
-        { size: "L", color: "Black", quantity: 18 },
-        { size: "XL", color: "Black", quantity: 15 }
-      ]
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await apiFetch('/api/products');
+        const data = await res.json();
+        setProducts(data);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const handleAddProduct = () => navigate('/add-product');
+  const handleEditProduct = (productId) => navigate(`/products/edit/${productId}`);
+
+  const handleDeleteProduct = async (productId) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this product?');
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(productId);
+      const res = await apiFetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Failed to delete product');
+      }
+
+      setProducts((prev) => prev.filter((product) => product._id !== productId));
+    } catch (error) {
+      alert('Error deleting product: ' + error.message);
+    } finally {
+      setDeletingId(null);
     }
-  ]);
-
-  const handleAddProduct = () => {
-    navigate('/add-product');
   };
 
-  const handleEditProduct = (productId) => {
-    // TODO: Implement edit product functionality
-    console.log('Edit product:', productId);
+  const calculateTotalStock = (variants = []) => {
+    return variants.reduce((total, variant) => total + (variant.quantity || 0), 0);
   };
 
-  const handleDeleteProduct = (productId) => {
-    // TODO: Implement delete product functionality
-    console.log('Delete product:', productId);
-  };
+  const getUniqueColors = (variants = []) => [...new Set(variants.map((v) => v.color))];
+  const getUniqueSizes = (variants = []) => [...new Set(variants.map((v) => v.size))];
 
-  // Helper function to calculate total stock from variants
-  const calculateTotalStock = (variants) => {
-    return variants.reduce((total, variant) => total + variant.quantity, 0);
-  };
-
-  // Helper function to get unique colors and sizes
-  const getUniqueColors = (variants) => {
-    return [...new Set(variants.map(v => v.color))];
-  };
-
-  const getUniqueSizes = (variants) => {
-    return [...new Set(variants.map(v => v.size))];
-  };
+  if (loading) return <p className="p-8 text-lg">Loading products...</p>;
 
   return (
     <ProductsContainer>
@@ -343,8 +251,7 @@ const Products = () => {
         <Header>
           <Title>Products</Title>
           <AddButton onClick={handleAddProduct}>
-            <span>➕</span>
-            Add Product
+            <span>➕</span> Add Product
           </AddButton>
         </Header>
 
@@ -353,52 +260,53 @@ const Products = () => {
             const totalStock = calculateTotalStock(product.variants);
             const uniqueColors = getUniqueColors(product.variants);
             const uniqueSizes = getUniqueSizes(product.variants);
-            
+
             return (
               <ProductCard key={product._id}>
-                <ProductImage src={product.images[0]} alt={product.title} />
+                {/* Badges */}
+                {product.isOnSale && <Badge variant="sale">Sale</Badge>}
+                {product.isNew && <Badge variant="new">New</Badge>}
+
+                <ProductImage src={product.images?.[0] || '/no-image.png'} alt={product.title} />
                 <ProductName>{product.title}</ProductName>
-                
+
                 <ProductPrice>
-                  {product.onSale ? (
+                  {product.isOnSale ? (
                     <>
                       <OriginalPrice>${product.price}</OriginalPrice>
                       <SalePrice>${product.salePrice}</SalePrice>
-                      <SaleBadge>Sale</SaleBadge>
                     </>
                   ) : (
                     <RegularPrice>${product.price}</RegularPrice>
                   )}
                 </ProductPrice>
-                
+
                 <ProductCategory>
-                  {product.categories.map((category, index) => (
+                  {product.categories?.map((category, index) => (
                     <CategoryTag key={index}>{category}</CategoryTag>
                   ))}
                 </ProductCategory>
-                
+
                 <ProductStock>
                   <StockStatus inStock={totalStock > 0}>
                     {totalStock > 0 ? `In Stock (${totalStock})` : 'Out of Stock'}
                   </StockStatus>
                 </ProductStock>
-                
+
                 <VariantsInfo>
                   {uniqueColors.length} colors • {uniqueSizes.length} sizes
                 </VariantsInfo>
-                
+
                 <ActionButtons>
-                  <ActionButton 
-                    className="edit"
-                    onClick={() => handleEditProduct(product._id)}
-                  >
+                  <ActionButton className="edit" onClick={() => handleEditProduct(product._id)}>
                     Edit
                   </ActionButton>
-                  <ActionButton 
+                  <ActionButton
                     className="delete"
                     onClick={() => handleDeleteProduct(product._id)}
+                    disabled={deletingId === product._id}
                   >
-                    Delete
+                    {deletingId === product._id ? 'Deleting...' : 'Delete'}
                   </ActionButton>
                 </ActionButtons>
               </ProductCard>
@@ -410,4 +318,4 @@ const Products = () => {
   );
 };
 
-export default Products; 
+export default Products;

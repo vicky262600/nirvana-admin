@@ -5,6 +5,12 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import AddProduct from './pages/AddProduct';
+import EditProduct from './pages/EditProduct';
+import Orders from './pages/Orders';
+import Returns from './pages/Returns';
+import Customers from './pages/Customers';
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 import Topbar from './components/Topbar';
 import Sidebar from './components/Sidebar';
 
@@ -61,6 +67,36 @@ function App() {
             <Route path="/add-product" element={
               <AdminLayout>
                 <AddProduct />
+              </AdminLayout>
+            } />
+            <Route path="/products/edit/:id" element={
+              <AdminLayout>
+                <EditProduct />
+              </AdminLayout>
+            } />
+            <Route path="/orders" element={
+              <AdminLayout>
+                <Orders />
+              </AdminLayout>
+            } />
+            <Route path="/returns" element={
+              <AdminLayout>
+                <Returns />
+              </AdminLayout>
+            } />
+            <Route path="/customers" element={
+              <AdminLayout>
+                <Customers />
+              </AdminLayout>
+            } />
+            <Route path="/analytics" element={
+              <AdminLayout>
+                <Analytics />
+              </AdminLayout>
+            } />
+            <Route path="/settings" element={
+              <AdminLayout>
+                <Settings />
               </AdminLayout>
             } />
             <Route path="*" element={<Navigate to="/dashboard" />} />

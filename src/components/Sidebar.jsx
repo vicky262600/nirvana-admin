@@ -104,6 +104,12 @@ export default function Sidebar() {
                 Orders
               </SidebarListItem>
             </StyledLink>
+            <StyledLink to="/returns">
+              <SidebarListItem className={currentPath === "/returns" ? "active" : ""}>
+                <SidebarIcon>🔄</SidebarIcon>
+                Returns
+              </SidebarListItem>
+            </StyledLink>
             <StyledLink to="/customers">
               <SidebarListItem className={currentPath === "/customers" ? "active" : ""}>
                 <SidebarIcon>👥</SidebarIcon>

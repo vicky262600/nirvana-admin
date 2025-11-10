@@ -51,34 +51,44 @@ const DataPoint = styled.circle`
   }
 `;
 
-const Tooltip = styled.div`
-  position: absolute;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 10;
-  display: ${props => props.show ? 'block' : 'none'};
-`;
-
 const LineChart = ({ data = [], title = "Line Chart" }) => {
-  // Sample data if none provided
-  const chartData = data.length > 0 ? data : [
-    { month: 'Jan', value: 65 },
-    { month: 'Feb', value: 78 },
-    { month: 'Mar', value: 90 },
-    { month: 'Apr', value: 81 },
-    { month: 'May', value: 95 },
-    { month: 'Jun', value: 88 },
-    { month: 'Jul', value: 92 },
-    { month: 'Aug', value: 85 },
-    { month: 'Sep', value: 98 },
-    { month: 'Oct', value: 87 },
-    { month: 'Nov', value: 93 },
-    { month: 'Dec', value: 89 }
+  const fallbackData = [
+    { month: 'Jan', value: 12 },
+    { month: 'Feb', value: 100},
+    { month: 'Mar', value: 80 },
+    { month: 'Apr', value: 37 },
+    { month: 'May', value: 69},
+    { month: 'Jun', value: 66},
   ];
+
+  const rawData = data.length > 0 ? data : fallbackData;
+
+  // Clean and validate data
+  const chartData = rawData.filter(
+    d => d && typeof d.value === 'number' && !isNaN(d.value) && isFinite(d.value)
+  );
+
+  // If chartData is still empty, provide a safe backup
+  const finalData = chartData.length > 0 ? chartData : fallbackData;
+
+  // Additional safety check - ensure we have at least 2 data points for a line
+  if (finalData.length < 2) {
+    return (
+      <ChartContainer>
+        <ChartTitle>{title}</ChartTitle>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: '200px',
+          color: '#666',
+          fontSize: '14px'
+        }}>
+          Insufficient data to display chart
+        </div>
+      </ChartContainer>
+    );
+  }
 
   const width = 800;
   const height = 200;
@@ -86,28 +96,43 @@ const LineChart = ({ data = [], title = "Line Chart" }) => {
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = height - margin.top - margin.bottom;
 
-  const maxValue = Math.max(...chartData.map(d => d.value));
-  const minValue = Math.min(...chartData.map(d => d.value));
-  const valueRange = maxValue - minValue;
+  const values = finalData.map(d => d.value);
+  const maxValue = Math.max(...values);
+  const minValue = Math.min(...values);
+  const valueRange = maxValue === minValue ? 1 : maxValue - minValue;
 
-  const xScale = (index) => margin.left + (index / (chartData.length - 1)) * chartWidth;
-  const yScale = (value) => margin.top + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+  const xScale = (index) => {
+    if (isNaN(index) || finalData.length <= 1) return margin.left;
+    return margin.left + (index / (finalData.length - 1)) * chartWidth;
+  };
 
-  // Create path for the line
-  const linePath = chartData.map((d, i) => {
+  const yScale = (value) => {
+    if (isNaN(value) || valueRange === 0) return margin.top + chartHeight / 2;
+    return margin.top + chartHeight - ((value - minValue) / valueRange) * chartHeight;
+  };
+
+  const linePath = finalData.map((d, i) => {
     const x = xScale(i);
     const y = yScale(d.value);
+    // Ensure we have valid numbers
+    if (isNaN(x) || isNaN(y)) {
+      return i === 0 ? `M ${margin.left} ${margin.top + chartHeight / 2}` : '';
+    }
     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-  }).join(' ');
+  }).filter(segment => segment !== '').join(' ');
 
-  // Create path for the area
-  const areaPath = chartData.map((d, i) => {
+  const areaPath = finalData.map((d, i) => {
     const x = xScale(i);
     const y = yScale(d.value);
+    // Ensure we have valid numbers
+    if (isNaN(x) || isNaN(y)) {
+      return i === 0 ? `M ${margin.left} ${margin.top + chartHeight / 2}` : '';
+    }
     return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-  }).join(' ') + ` L ${xScale(chartData.length - 1)} ${margin.top + chartHeight} L ${xScale(0)} ${margin.top + chartHeight} Z`;
+  }).filter(segment => segment !== '').join(' ') +
+    ` L ${xScale(finalData.length - 1)} ${margin.top + chartHeight}` +
+    ` L ${xScale(0)} ${margin.top + chartHeight} Z`;
 
-  // Create grid lines
   const gridLines = [];
   for (let i = 0; i <= 4; i++) {
     const y = margin.top + (i / 4) * chartHeight;
@@ -126,44 +151,55 @@ const LineChart = ({ data = [], title = "Line Chart" }) => {
             <stop offset="100%" stopColor="#7451f8" stopOpacity="0.1" />
           </linearGradient>
         </defs>
-        
-        {/* Grid lines */}
+
+        {/* Grid */}
         {gridLines}
-        
-        {/* Area under the line */}
+
+        {/* Area */}
         <Area d={areaPath} />
-        
+
         {/* Line */}
         <Line d={linePath} />
-        
+
         {/* Data points */}
-        {chartData.map((d, i) => (
-          <DataPoint
-            key={i}
-            cx={xScale(i)}
-            cy={yScale(d.value)}
-            r="4"
-            data-value={d.value}
-            data-month={d.month}
-          />
-        ))}
-        
+        {finalData.map((d, i) => {
+          const x = xScale(i);
+          const y = yScale(d.value);
+          // Only render data points with valid coordinates
+          if (isNaN(x) || isNaN(y)) return null;
+          return (
+            <DataPoint
+              key={i}
+              cx={x}
+              cy={y}
+              r={4}
+              data-value={d.value}
+              data-month={d.month}
+            />
+          );
+        })}
+
         {/* X-axis labels */}
-        {chartData.map((d, i) => (
-          <text
-            key={i}
-            x={xScale(i)}
-            y={height - 10}
-            textAnchor="middle"
-            fontSize="10"
-            fill="#666"
-          >
-            {d.month}
-          </text>
-        ))}
+        {finalData.map((d, i) => {
+          const x = xScale(i);
+          // Only render labels with valid coordinates
+          if (isNaN(x)) return null;
+          return (
+            <text
+              key={i}
+              x={x}
+              y={height - 10}
+              textAnchor="middle"
+              fontSize="10"
+              fill="#666"
+            >
+              {d.month}
+            </text>
+          );
+        })}
       </SVG>
     </ChartContainer>
   );
 };
 
-export default LineChart; 
+export default LineChart;
